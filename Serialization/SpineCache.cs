@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DaiblosEncore.Serialization;
 
-internal class SpineCache
+public class SpineCache
 {
     public Il2CppReferenceArray<AtlasAssetBase>? AtlasAssets;
     public TextAsset? SkeletonJson;

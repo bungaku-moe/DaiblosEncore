@@ -1,4 +1,5 @@
 ﻿using DaiblosEncore;
+using DaiblosEncore.Patches;
 using MelonLoader;
 using MelonLoader.Logging;
 using MelonLoader.Utils;
@@ -18,11 +19,12 @@ namespace DaiblosEncore;
 
 public class Core : MelonMod
 {
-    public static readonly MelonLogger.Instance Log = new("DaiblosEncore", ColorARGB.FromArgb(48, 133, 213));   
-    
+    public static readonly MelonLogger.Instance Log = new("DaiblosEncore", ColorARGB.FromArgb(48, 133, 213));
+    private static FileSystemWatcher? _spineWatcher;
+
     private static string? _basePath;
     public static string? SpineModPath;
-    
+
     public override void OnInitializeMelon()
     {
         _basePath = Path.Combine(MelonEnvironment.ModsDirectory, "DaiblosEncore");
@@ -31,6 +33,19 @@ public class Core : MelonMod
         SpineModPath = Path.Combine(_basePath, "Spine");
         Directory.CreateDirectory(SpineModPath);
 
+        // Hot reload spine files
+        _spineWatcher = new FileSystemWatcher(SpineModPath)
+        {
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+            Filter = "*.*",
+            IncludeSubdirectories = true,
+            EnableRaisingEvents = true
+        };
+        _spineWatcher.Changed += (sender, args) =>
+        {
+            Log.Msg($"Asset(s) file changed: {args.FullPath}. Clearing cache to hot reload...");
+            SpineReplacer.Cache.Remove(args?.Name);
+        };
         HarmonyInstance.PatchAll();
     }
 }

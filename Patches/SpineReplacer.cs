@@ -18,7 +18,7 @@ public class SpineReplacer
     private static readonly Stopwatch Stopwatch = new();
 
     // ----- Cache dictionary -----
-    private static readonly Dictionary<string, SpineCache> Cache = new();
+    public static readonly Dictionary<string, SpineCache> Cache = new();
 
     // ----- Patch Skeleton Data Binary if has .skel file -----
     [HarmonyPatch(typeof(SkeletonDataAsset), "ReadSkeletonData", typeof(byte[]), typeof(AttachmentLoader),
@@ -29,18 +29,12 @@ public class SpineReplacer
         AttachmentLoader attachmentLoader,
         float scale)
     {
-        Core.Log.Msg("Start find .skel file.");
-        Stopwatch.Restart();
-
         var spinePath = Path.Combine(Core.SpineModPath, __instance.name.Replace("SkeletonData", "spine").ToLower());
         var skelPath = Path.Combine(spinePath,
             Directory.GetFiles(spinePath).FirstOrDefault(path => path.EndsWith(".skel")));
-        
+
         if (!Directory.Exists(spinePath))
             return true;
-
-        Stopwatch.Stop();
-        Core.Log.Msg($"Finished finding .skel file in {Stopwatch.ElapsedMilliseconds} ms.");
 
         if (!File.Exists(skelPath))
         {
@@ -50,11 +44,10 @@ public class SpineReplacer
 
         try
         {
-            Core.Log.Msg("Start reading .skel file.");
             Stopwatch.Restart();
             bytes = File.ReadAllBytes(skelPath);
             Stopwatch.Stop();
-            Core.Log.Msg($"Finished reading .skel file in {Stopwatch.ElapsedMilliseconds} ms");
+            Core.Log.Msg($"Reading .skel file took {Stopwatch.ElapsedMilliseconds} ms");
         }
         catch (Exception e)
         {
@@ -78,7 +71,7 @@ public class SpineReplacer
             // ----- Check cache first -----
             if (Cache.TryGetValue(baseName, out var cached))
             {
-                Core.Log.Msg($"Using cached Spine model: {baseName}");
+                Core.Log.Msg($"Using cached Spine data: {baseName}");
 
                 __instance.atlasAssets = cached.AtlasAssets;
                 __instance.skeletonJSON = cached.SkeletonJson;
@@ -111,7 +104,6 @@ public class SpineReplacer
 
             try
             {
-                Core.Log.Msg($"Loading textures: {spinePath}");
                 Stopwatch.Restart();
 
                 // ----- Load texture(s) -----
@@ -130,9 +122,8 @@ public class SpineReplacer
                 }
 
                 Stopwatch.Stop();
-                Core.Log.Msg($"Finished loading textures in {Stopwatch.ElapsedMilliseconds} ms.");
+                Core.Log.Msg($"Loading texture(s) took {Stopwatch.ElapsedMilliseconds} ms.");
 
-                Core.Log.Msg("Start creating atlas asset.");
                 Stopwatch.Restart();
 
                 // ----- Read atlas only once -----
@@ -165,7 +156,7 @@ public class SpineReplacer
                 }
 
                 Stopwatch.Stop();
-                Core.Log.Msg($"Finished creating atlas asset in {Stopwatch.ElapsedMilliseconds} ms.");
+                Core.Log.Msg($"Create atlas asset took {Stopwatch.ElapsedMilliseconds} ms.");
 
                 var atlasAssets = new Il2CppReferenceArray<AtlasAssetBase>(atlasAssetsBase.Count);
 
@@ -186,14 +177,13 @@ public class SpineReplacer
                         name = Path.GetFileName(jsonPath)
                     };
 
-                    Core.Log.Msg("Start reading skeleton data asset.");
                     Stopwatch.Restart();
 
                     TextAsset.Internal_CreateInstance(skeletonJson, File.ReadAllText(jsonPath));
                     __instance.skeletonJSON = skeletonJson;
 
                     Stopwatch.Stop();
-                    Core.Log.Msg($"Finished reading skeleton data asset in {Stopwatch.ElapsedMilliseconds} ms.");
+                    Core.Log.Msg($"Reading skeleton data asset took {Stopwatch.ElapsedMilliseconds} ms.");
                 }
 
                 // ----- Save to cache -----
@@ -203,7 +193,7 @@ public class SpineReplacer
                     SkeletonJson = __instance.skeletonJSON
                 };
 
-                Core.Log.Msg("Spine model cached.");
+                Core.Log.Msg("Spine data loaded and cached successfully.");
 
                 __instance.Clear();
             }
